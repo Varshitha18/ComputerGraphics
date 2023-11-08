@@ -422,10 +422,18 @@ Display( )
 
 	glMatrixMode( GL_MODELVIEW );
 	glLoadIdentity( );
+	int msec = glutGet(GLUT_ELAPSED_TIME) % MSEC;
+	float nowTime = (float)msec / 1000.f;
+
+	int mnsec = glutGet(GLUT_ELAPSED_TIME) % MSEC;
+	// turn that into a time in seconds:
+	int nowSec = (float)mnsec / 1000.f;
+
+	gluLookAt(nowSec%2, 20+nowSec%2, 12+nowSec%2, nowSec % 2, 0, 0, 0.f, 1.f, 0.f );
 
 	// set the eye position, look-at position, and up-vector:
 
-	gluLookAt( 0.f, 10.f, 12.f,     0.f, 0.f, 0.f,     0.f, 1.f, 0.f );
+	//gluLookAt( 0.f, 10.f, 12.f,     0.f, 0.f, 0.f,     0.f, 1.f, 0.f );
 
 	// rotate the scene:
 
@@ -489,6 +497,9 @@ Display( )
 
 	glRotatef(360.f*Time,   0., 1., 0.);
 	glTranslatef(0, 5, 4);
+
+	
+
 	if(NowLight == POINT) {
 		if(NowColor == RED) {
 			SetPointLight(GL_LIGHT0, 0,5,3,1,0,0);
@@ -508,33 +519,32 @@ Display( )
 	}
 	else {
 		if(NowLight == SPOT) {
-			if(NowColor == RED) {
-				SetSpotLight(GL_LIGHT0,0,5,3,0,-5,0,1,0,0);
+			
+			if(nowSec % 5 == 0) {
+				SetSpotLight(GL_LIGHT0,0,5,3,0,-5,0,1,0,1);
+				NowColor = RED;
 				glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 30.0);
+				if(nowSec % 10 == 0) {
+					SetPointLight(GL_LIGHT0, 0,5,3,1,1,1);
+					NowColor = WHIT;
+				}
+				
 			}
-			if(NowColor == GREEN) {
-				SetSpotLight(GL_LIGHT0,0,5,3,0,-5,0,0,1,0);
-				glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 30.0);
-			}
-			if(NowColor == BLUE) {
-				SetSpotLight(GL_LIGHT0,0,5,3,0,-5,0,0,0,1);
-				glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 30.0);
-			}
-			if(NowColor == YELLOW) {
-				SetSpotLight(GL_LIGHT0,0,5,3,0,-5,0,1,1,0);
-				glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 30.0);
-			}
-			if(NowColor == WHIT) {
-				SetSpotLight(GL_LIGHT0,0,5,3,0,-5,0,1,1,1);
-				glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 30.0);
+			else {
+				SetPointLight(GL_LIGHT0,0,5,3,1,1,0);
+				NowColor = YELLOW;
+				if(nowSec % 3 == 0) {
+					SetPointLight(GL_LIGHT0, 0,5,3,0,1,1);
+					NowColor = BLUE;
+				}
 			}
 		}
 	}
 
-	int msec = glutGet( GLUT_ELAPSED_TIME )  %  MSEC;
+	//int msec = glutGet( GLUT_ELAPSED_TIME )  %  MSEC;
 
 	// turn that into a time in seconds:
-	float nowTime = (float)msec  / 1000.;
+	//float nowTime = (float)msec  / 1000.;
 
 	glCallList( BoxList );
 	glPopMatrix();
@@ -549,11 +559,12 @@ Display( )
 
 	glPushMatrix();
 	SetMaterial(1, 0, 0, 1);
+	glTranslatef( Xpos1.GetValue( nowTime ), Ypos1.GetValue( nowTime ), Zpos1.GetValue( nowTime ) );
 	glTranslatef( Xpostheta.GetValue( nowTime ), Ypostheta.GetValue( nowTime ), Zpostheta.GetValue( nowTime ) );
 
 		glRotatef( 45*nowTime,  1., 0., 0. );
-		glRotatef( Zpostheta.GetValue( nowTime ),  0., 1., 0. );
-		glRotatef( Ypostheta.GetValue( nowTime ),  0., 0., 1. );
+		glRotatef( 90*nowTime,  0., 1., 0. );
+		glRotatef( 45*nowTime,  0., 0., 1. );
 	glCallList( DogDL );
 	glPopMatrix();
 
@@ -913,11 +924,15 @@ InitGraphics( )
 	float t = 0.0;
 	for(float v = 0; t < 10; t++) {
 		Xpostheta.AddTimeValue(t, v);
-		Zpostheta.AddTimeValue(t, v+0.2);
-		Ypostheta.AddTimeValue(t, v+0.4);
+		Zpostheta.AddTimeValue(t, v+0.01);
+		Ypostheta.AddTimeValue(t, v+0.01);
 
-		v = v + 0.2;
+		v = v + 0.01;
 	}
+	
+
+	Xpos1.AddTimeValue(0, 0);
+	Xpos1.AddTimeValue(5, 0.2);
 	// for(float v = 0; t < 10; t++) {
 	// 	Zpostheta.AddTimeValue(t, v);
 	// 	v = v + 0.2;
@@ -970,8 +985,9 @@ InitLists( )
 
 	DogDL = glGenLists( 1 );
 	glNewList( DogDL, GL_COMPILE );
-		glTranslatef(0,0, 4);
-		LoadObjFile( (char *)"dog.obj" );
+		glTranslatef(3,3, 4);
+		glScalef(0.01, 0.01, 0.01);
+		LoadObjFile( (char *)"spaceship.obj" );
 	glEndList( );
 
 	GridDL = glGenLists( 1 );
@@ -995,7 +1011,7 @@ glEndList( );
 	AxesList = glGenLists( 1 );
 	glNewList( AxesList, GL_COMPILE );
 		glLineWidth( AXES_WIDTH );
-			Axes( 1.5 );
+			Axes( 0 );
 		glLineWidth( 1. );
 	glEndList( );
 
@@ -1171,14 +1187,14 @@ void
 Reset( )
 {
 	ActiveButton = 0;
-	AxesOn = 1;
+	AxesOn = 0;
 	DebugOn = 0;
 	DepthBufferOn = 1;
 	DepthFightingOn = 0;
 	DepthCueOn = 0;
 	Scale  = 1.0;
 	ShadowsOn = 0;
-	NowColor = YELLOW;
+	NowColor = WHIT;
 	NowProjection = PERSP;
 	Xrot = Yrot = 0.;
 }
