@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include "keytime.cpp"
+#include "keytime.h"
 
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -16,6 +18,25 @@
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
 #include "glut.h"
+
+#define XSIDE	30			// length of the x side of the grid
+#define X0      (-XSIDE/2.)		// where one side starts
+#define NX	1000		// how many points in x
+#define DX	( XSIDE/(float)NX )	// change in x between the points
+
+#define YGRID	0.f
+
+#define ZSIDE	30	// length of the z side of the grid
+#define Z0      (-ZSIDE/2.)		// where one side starts
+#define NZ	1000			// how many points in z
+#define DZ	( ZSIDE/(float)NZ )	// change in z between the points
+
+const int MSEC = 10000;		// 10000 milliseconds = 10 seconds
+
+
+// a global:
+Keytimes Xpos1, Ypos1, Zpos1;
+Keytimes Xpostheta, Ypostheta, Zpostheta;
 
 
 //	This is a sample OpenGL / GLUT program
@@ -38,7 +59,7 @@
 
 // title of these windows:
 
-const char *WINDOWTITLE = "OpenGL / GLUT Sample -- Veda Graphics";
+const char *WINDOWTITLE = "OpenGL / GLUT Sample -- Joe Graphics";
 const char *GLUITITLE   = "User Interface Window";
 
 // what the glui package defines as true and false:
@@ -91,6 +112,11 @@ enum Projections
 	PERSP
 };
 
+enum Light
+{
+	SPOT,
+	POINT
+};
 // which button:
 
 enum ButtonVals
@@ -118,7 +144,8 @@ enum Colors
 	GREEN,
 	CYAN,
 	BLUE,
-	MAGENTA
+	MAGENTA,
+	WHIT
 };
 
 char * ColorNames[ ] =
@@ -128,7 +155,8 @@ char * ColorNames[ ] =
 	(char*)"Green",
 	(char*)"Cyan",
 	(char*)"Blue",
-	(char*)"Magenta"
+	(char*)"Magenta",
+	(char*)"White"
 };
 
 // the color definitions:
@@ -173,7 +201,7 @@ const int MS_PER_CYCLE = 10000;		// 10000 milliseconds = 10 seconds
 int		ActiveButton;			// current button that is down
 GLuint	AxesList;				// list to hold the axes
 int		AxesOn;					// != 0 means to draw the axes
-GLuint	BoxList;				// object display list
+GLuint	BoxList, DogDL, CatDL, DuckyDL, GridDL;				// object display list
 int		DebugOn;				// != 0 means to print debugging info
 int		DepthCueOn;				// != 0 means to use intensity depth cueing
 int		DepthBufferOn;			// != 0 means to use the z-buffer
@@ -181,18 +209,12 @@ int		DepthFightingOn;		// != 0 means to force the creation of z-fighting
 int		MainWindow;				// window id for main graphics window
 int		NowColor;				// index into Colors[ ]
 int		NowProjection;		// ORTHO or PERSP
+int 	NowLight;			//SPOT or POINT
 float	Scale;					// scaling factor
 int		ShadowsOn;				// != 0 means to turn shadows on
 float	Time;					// used for animation, this has a value between 0. and 1.
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
-
-bool TexMode;
-bool LightMode;
-GLuint	SphereDL, MarsDL,VenusDL,EarthDL,JupiterDL,SaturnDL,NeptuneDL,UranusDL;	// display lists
-GLuint	MarsTex,VenTex,EarthTex,JupTex,SatTex,NeptTex,UranTex;		// texture object
-float lightX,lightY,lightZ = 0.0;
-int planetNum;
 
 
 // function prototypes:
@@ -277,9 +299,9 @@ MulArray3(float factor, float a, float b, float c )
 #include "osusphere.cpp"
 //#include "osucone.cpp"
 //#include "osutorus.cpp"
-#include "bmptotexture.cpp"
+//#include "bmptotexture.cpp"
 #include "loadobjfile.cpp"
-//#include "keytime.cpp"
+
 //#include "glslprogram.cpp"
 
 
@@ -341,52 +363,6 @@ Animate( )
 	Time = (float)ms / (float)MS_PER_CYCLE;		// makes the value of Time between 0. and slightly less than 1.
 
 	// for example, if you wanted to spin an object in Display( ), you might call: glRotatef( 360.f*Time,   0., 1., 0. );
-	switch (planetNum){
-
-		case 2:
-			lightX = 2.13f  * cos(F_2_PI * 2 * Time);
-    		lightY = 2.13 * 0.15f;
-			lightZ = 2.13f  * sin(F_2_PI * 2 * Time); 
-			break;
-		
-		case 3:
-			lightX = 2.25f  * cos(F_2_PI * 2 * Time);
-    		lightY = 2.25 * 0.15f;
-			lightZ = 2.25f  * sin(F_2_PI * 2 * Time);
-			break;
-		
-		case 4:
-			lightX = 1.19f  * cos(F_2_PI * 2 * Time);
-    		lightY = 1.19 * 0.15f;
-			lightZ = 1.19f  * sin(F_2_PI * 2 * Time);
-			break;
-		
-		case 5:
-			lightX = 11.25f * 2.25f  * cos(F_2_PI * 2 * Time);
-    		lightY = 11.25f * 0.15f;
-			lightZ = 11.25f * 2.25f * sin(F_2_PI * 2 * Time);
-			break;
-		
-		case 6:
-			lightX = 9.45f * 2.25f  * cos(F_2_PI * 2 * Time);
-    		lightY = 9.45f * 0.15f;
-			lightZ = 9.45f * 2.25f * sin(F_2_PI * 2 * Time);
-			break;
-		
-		case 7:
-			lightX = 4.01f * 2.25f  * cos(F_2_PI * 2 * Time);
-    		lightY = 4.01f * 0.15f;
-			lightZ = 4.01f * 2.25f * sin(F_2_PI * 2 * Time);
-			break;
-		
-		case 8:
-			lightX = 3.88f * 2.25f  * cos(F_2_PI * 2 * Time);
-    		lightY = 3.88f * 0.15f;
-			lightZ = 3.88f * 2.25f * sin(F_2_PI * 2 * Time);
-			break;
-		
-	}
-
 
 	// force a call to Display( ) next time it is convenient:
 
@@ -419,7 +395,7 @@ Display( )
 
 	// specify shading to be flat:
 
-	glShadeModel( GL_SMOOTH );
+	glShadeModel( GL_FLAT );
 
 	// set the viewport to be a square centered in the window:
 
@@ -446,10 +422,18 @@ Display( )
 
 	glMatrixMode( GL_MODELVIEW );
 	glLoadIdentity( );
+	int msec = glutGet(GLUT_ELAPSED_TIME) % MSEC;
+	float nowTime = (float)msec / 1000.f;
+
+	int mnsec = glutGet(GLUT_ELAPSED_TIME) % MSEC;
+	// turn that into a time in seconds:
+	int nowSec = (float)mnsec / 1000.f;
+
+	gluLookAt(nowSec%2, 20+nowSec%2, 12+nowSec%2, nowSec % 2, 0, 0, 0.f, 1.f, 0.f );
 
 	// set the eye position, look-at position, and up-vector:
 
-	gluLookAt( 0.f, 0.f, 3.f,     0.f, 0.f, 0.f,     0.f, 1.f, 0.f );
+	//gluLookAt( 0.f, 10.f, 12.f,     0.f, 0.f, 0.f,     0.f, 1.f, 0.f );
 
 	// rotate the scene:
 
@@ -493,82 +477,107 @@ Display( )
 
 	// draw the box object by calling up its display list:
 
-	if( TexMode )
-		glEnable( GL_TEXTURE_2D );
-	else
-		glDisable( GL_TEXTURE_2D );
+
+	glPushMatrix();
+	if(NowColor == RED) {
+		glColor3f(1,0,0);
+	}
+	if(NowColor == GREEN) {
+		glColor3f(0,1,0);
+	}
+	if(NowColor == BLUE) {
+		glColor3f(0,0,1);
+	}
+	if(NowColor == YELLOW) {
+		glColor3f(1,1,0);
+	}
+	if(NowColor == WHIT) {
+		glColor3f(1,1,1);
+	}
+
+	glRotatef(360.f*Time,   0., 1., 0.);
+	glTranslatef(0, 5, 4);
+
+	
+
+	if(NowLight == POINT) {
+		if(NowColor == RED) {
+			SetPointLight(GL_LIGHT0, 0,5,3,1,0,0);
+		}
+		if(NowColor == GREEN) {
+			SetPointLight(GL_LIGHT0, 0,5,3,0,1,0);
+		}
+		if(NowColor == BLUE) {
+			SetPointLight(GL_LIGHT0, 0,5,3,0,0,1);
+		}
+		if(NowColor == YELLOW) {
+			SetPointLight(GL_LIGHT0, 0,5,3,1,1,0);
+		}
+		if(NowColor == WHIT) {
+			SetPointLight(GL_LIGHT0, 0,5,3,1,1,1);
+		}
+	}
+	else {
+		if(NowLight == SPOT) {
+			
+			if(nowSec % 5 == 0) {
+				SetSpotLight(GL_LIGHT0,0,5,3,0,-5,0,1,0,1);
+				NowColor = RED;
+				glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 30.0);
+				if(nowSec % 10 == 0) {
+					SetPointLight(GL_LIGHT0, 0,5,3,1,1,1);
+					NowColor = WHIT;
+				}
+				
+			}
+			else {
+				SetPointLight(GL_LIGHT0,0,5,3,1,1,0);
+				NowColor = YELLOW;
+				if(nowSec % 3 == 0) {
+					SetPointLight(GL_LIGHT0, 0,5,3,0,1,1);
+					NowColor = BLUE;
+				}
+			}
+		}
+	}
+
+	//int msec = glutGet( GLUT_ELAPSED_TIME )  %  MSEC;
+
+	// turn that into a time in seconds:
+	//float nowTime = (float)msec  / 1000.;
+
+	glCallList( BoxList );
+	glPopMatrix();
+	
 
 	glEnable( GL_LIGHTING );
 	glEnable( GL_LIGHT0 );
-	if( LightMode )
-	{
-		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-		SetPointLight(GL_LIGHT0, lightX, lightY, lightZ, 1.0 ,1.0 , 1.0);
-	}
-	else
-	{
-		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	}
 
-	switch (planetNum) {
-        case 2: // Venus
-            glPushMatrix();
-            glScalef(0.95f, 0.95f, 0.95f);
-            glCallList(VenusDL);
-            glPopMatrix();
-            break;
-        case 3: // Earth
-            glPushMatrix();
-            glScalef(1.0f, 1.0f, 1.0f);
-            glCallList(EarthDL);
-            glPopMatrix();
-            break;
-        case 4: // Mars
-            glPushMatrix();
-            glScalef(0.53f, 0.53f, 0.53f);
-            glCallList(MarsDL);
-            glPopMatrix();
-            break;
-        case 5: // Jupiter
-            glPushMatrix();
-            glScalef(11.21f, 11.21f, 11.21f);
-            glCallList(JupiterDL);
-            glPopMatrix();
-            break;
-		case 6: // Saturn
-            glPushMatrix();
-            glScalef(9.45f, 9.45f, 9.45f);
-            glCallList(SaturnDL);
-            glPopMatrix();
-            break;
-		case 7: // Uranus
-            glPushMatrix();
-            glScalef(4.01f, 4.01f, 4.01f);
-            glCallList(UranusDL);
-            glPopMatrix();
-            break;
-		case 8: // Neptune
-            glPushMatrix();
-            glScalef(3.88f, 3.88f, 3.88f);
-            glCallList(NeptuneDL);
-            glPopMatrix();
-            break;
-		default:
-			glPushMatrix();
-            glCallList(SphereDL);
-            glPopMatrix();
-			break;
-    }
+	glPushMatrix();
+	glCallList(GridDL);
+	glPopMatrix();
 
-	glDisable( GL_TEXTURE_2D );
-	glDisable( GL_LIGHTING );
+	glPushMatrix();
+	SetMaterial(1, 0, 0, 1);
+	glTranslatef( Xpos1.GetValue( nowTime ), Ypos1.GetValue( nowTime ), Zpos1.GetValue( nowTime ) );
+	glTranslatef( Xpostheta.GetValue( nowTime ), Ypostheta.GetValue( nowTime ), Zpostheta.GetValue( nowTime ) );
+
+		glRotatef( 45*nowTime,  1., 0., 0. );
+		glRotatef( 90*nowTime,  0., 1., 0. );
+		glRotatef( 45*nowTime,  0., 0., 1. );
+	glCallList( DogDL );
+	glPopMatrix();
+
+
+	glDisable(GL_LIGHTING);
+
 
 #ifdef DEMO_Z_FIGHTING
 	if( DepthFightingOn != 0 )
 	{
 		glPushMatrix( );
 			glRotatef( 90.f,   0.f, 1.f, 0.f );
-			glCallList( SphereDL );
+			glCallList( BoxList );
 		glPopMatrix( );
 	}
 #endif
@@ -905,6 +914,34 @@ InitGraphics( )
 
 	glutIdleFunc( Animate );
 
+	Xpos1.Init( );
+	Ypos1.Init( );
+	Zpos1.Init( );
+	Xpostheta.Init( );
+	Ypostheta.Init( );
+	Zpostheta.Init( );
+
+	float t = 0.0;
+	for(float v = 0; t < 10; t++) {
+		Xpostheta.AddTimeValue(t, v);
+		Zpostheta.AddTimeValue(t, v+0.01);
+		Ypostheta.AddTimeValue(t, v+0.01);
+
+		v = v + 0.01;
+	}
+	
+
+	Xpos1.AddTimeValue(0, 0);
+	Xpos1.AddTimeValue(5, 0.2);
+	// for(float v = 0; t < 10; t++) {
+	// 	Zpostheta.AddTimeValue(t, v);
+	// 	v = v + 0.2;
+	// }
+	// for(float v = 0; t < 10; t++) {
+	// 	Ypostheta.AddTimeValue(t, v);
+	// 	v = v + 0.2;
+	// }
+
 	// init the glew package (a window must be open to do this):
 
 #ifdef WIN32
@@ -919,124 +956,6 @@ InitGraphics( )
 #endif
 
 	// all other setups go here, such as GLSLProgram and KeyTime setups:
-	int width_m, height_m;
-	char *file1 = (char *)"mars.bmp";
-	unsigned char *texture1 = BmpToTexture( file1, &width_m, &height_m );
-	if( texture1 == NULL )
-        	fprintf( stderr, "Cannot open texture '%s'\n", file1 );
-	else
-        	fprintf( stderr, "Opened '%s': width = %d ; height = %d\n", file1, width_m, height_m );
-
-	glGenTextures( 1, &MarsTex );
-	glBindTexture( GL_TEXTURE_2D, MarsTex );
-	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D( GL_TEXTURE_2D, 0, 3, width_m, height_m, 0, GL_RGB, GL_UNSIGNED_BYTE, texture1 );
-
-    int width_v, height_v;
-	char *file3 = (char *)"venus.bmp";
-	unsigned char *texture3 = BmpToTexture( file3, &width_v, &height_v );
-	if( texture3 == NULL )
-        	fprintf( stderr, "Cannot open texture '%s'\n", file3 );
-	else
-        	fprintf( stderr, "Opened '%s': width = %d ; height = %d\n", file3, width_v, height_v );
-
-	glGenTextures( 1, &VenTex );
-	glBindTexture( GL_TEXTURE_2D, VenTex );
-	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D( GL_TEXTURE_2D, 0, 3, width_v, height_v, 0, GL_RGB, GL_UNSIGNED_BYTE, texture3 );
-
-	int width_e, height_e;
-	char *file2 = (char *)"earth.bmp";
-	unsigned char *texture2 = BmpToTexture( file2, &width_e, &height_e );
-	if( texture2 == NULL )
-        	fprintf( stderr, "Cannot open texture '%s'\n", file2 );
-	else
-        	fprintf( stderr, "Opened '%s': width = %d ; height = %d\n", file2, width_e, height_e );
-
-	glGenTextures( 1, &EarthTex );
-	glBindTexture( GL_TEXTURE_2D, EarthTex );
-	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D( GL_TEXTURE_2D, 0, 3, width_e, height_e, 0, GL_RGB, GL_UNSIGNED_BYTE, texture2 );
-
-	int width_j, height_j;
-	char *file4 = (char *)"jupiter.bmp";
-	unsigned char *texture4 = BmpToTexture( file4, &width_j, &height_j);
-	if( texture4 == NULL )
-        	fprintf( stderr, "Cannot open texture '%s'\n", file4 );
-	else
-        	fprintf( stderr, "Opened '%s': width = %d ; height = %d\n", file4, width_j, height_j);
-
-	glGenTextures( 1, &JupTex );
-	glBindTexture( GL_TEXTURE_2D, JupTex );
-	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D( GL_TEXTURE_2D, 0, 3, width_j, height_j, 0, GL_RGB, GL_UNSIGNED_BYTE, texture4);
-
-	int width_s, height_s;
-	char *file5 = (char *)"saturn.bmp";
-	unsigned char *texture5 = BmpToTexture( file5, &width_s, &height_s);
-	if( texture5 == NULL )
-        	fprintf( stderr, "Cannot open texture '%s'\n", file5 );
-	else
-        	fprintf( stderr, "Opened '%s': width = %d ; height = %d\n", file5, width_s, height_s);
-
-	glGenTextures( 1, &SatTex );
-	glBindTexture( GL_TEXTURE_2D, SatTex );
-	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D( GL_TEXTURE_2D, 0, 3, width_s, height_s, 0, GL_RGB, GL_UNSIGNED_BYTE, texture5);
-
-	int width_u, height_u;
-	char *file6 = (char *)"uranus.bmp";
-	unsigned char *texture6 = BmpToTexture( file6, &width_u, &height_u);
-	if( texture6 == NULL )
-        	fprintf( stderr, "Cannot open texture '%s'\n", file6 );
-	else
-        	fprintf( stderr, "Opened '%s': width = %d ; height = %d\n", file6, width_u, height_u);
-
-	glGenTextures( 1, &UranTex );
-	glBindTexture( GL_TEXTURE_2D, UranTex );
-	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D( GL_TEXTURE_2D, 0, 3, width_u, height_u, 0, GL_RGB, GL_UNSIGNED_BYTE, texture6);
-
-	int width_n, height_n;
-	char *file7 = (char *)"neptune.bmp";
-	unsigned char *texture7 = BmpToTexture( file7, &width_n, &height_n);
-	if( texture7 == NULL )
-        	fprintf( stderr, "Cannot open texture '%s'\n", file7 );
-	else
-        	fprintf( stderr, "Opened '%s': width = %d ; height = %d\n", file7, width_n, height_n);
-
-	glGenTextures( 1, &NeptTex );
-	glBindTexture( GL_TEXTURE_2D, NeptTex );
-	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D( GL_TEXTURE_2D, 0, 3, width_n, height_n, 0, GL_RGB, GL_UNSIGNED_BYTE, texture7);
 
 }
 
@@ -1059,81 +978,43 @@ InitLists( )
 
 	// create the object:
 
-		SphereDL = glGenLists( 1 );
-	glNewList( SphereDL, GL_COMPILE );
-		OsuSphere( 1., 150, 250 );
+	BoxList = glGenLists( 1 );
+	glNewList( BoxList, GL_COMPILE );
+	OsuSphere(0.1, 30, 30);
 	glEndList( );
 
-	MarsDL = glGenLists( 1 );
-	glNewList( MarsDL, GL_COMPILE );
-		glBindTexture( GL_TEXTURE_2D, MarsTex );	// MarsTex must have already been created when this is called
-		//glPushMatrix( );
-			//glScalef( 0.53f, 0.53f, 0.53f );	// scale of mars sphere, from the table
-			glCallList( SphereDL );		// a dl can call another dl that has been previously created
-		//glPopMatrix( );
+	DogDL = glGenLists( 1 );
+	glNewList( DogDL, GL_COMPILE );
+		glTranslatef(3,3, 4);
+		glScalef(0.01, 0.01, 0.01);
+		LoadObjFile( (char *)"spaceship.obj" );
 	glEndList( );
 
-	VenusDL = glGenLists( 1 );
-	glNewList( VenusDL, GL_COMPILE );
-		glBindTexture( GL_TEXTURE_2D, VenTex );	
-		//glPushMatrix( );
-			//glScalef( 0.95f, 0.95f, 0.95f );	
-			glCallList( SphereDL );		
-		//glPopMatrix( );
-	glEndList( );
-
-	EarthDL = glGenLists( 1 );
-	glNewList( EarthDL, GL_COMPILE );
-		glBindTexture( GL_TEXTURE_2D, EarthTex );	
-		//glPushMatrix( );
-			//glScalef( 1.f, 1.f, 1.f );	
-			glCallList( SphereDL );		
-		//glPopMatrix( );
-	glEndList( );
-
-	JupiterDL = glGenLists( 1 );
-	glNewList( JupiterDL, GL_COMPILE );
-		glBindTexture( GL_TEXTURE_2D, JupTex );	
-		//glPushMatrix( );
-			glCallList( SphereDL );		
-		//glPopMatrix( );
-	glEndList( );
-
-	SaturnDL = glGenLists( 1 );
-	glNewList( SaturnDL, GL_COMPILE );
-		glBindTexture( GL_TEXTURE_2D, SatTex );	
-		//glPushMatrix( );
-			//glScalef( 9.45f, 9.45f, 9.45f );	
-			glCallList( SphereDL );		// a dl can call another dl that has been previously created
-		//glPopMatrix( );
-	glEndList( );
-
-	UranusDL = glGenLists( 1 );
-	glNewList( UranusDL, GL_COMPILE );
-		glBindTexture( GL_TEXTURE_2D, UranTex );	
-		//glPushMatrix( );
-			//glScalef( 1.f, 1.f, 1.f );	
-			glCallList( SphereDL );		// a dl can call another dl that has been previously created
-		//glPopMatrix( );
-	glEndList( );
-
-	NeptuneDL = glGenLists( 1 );
-	glNewList( NeptuneDL, GL_COMPILE );
-		glBindTexture( GL_TEXTURE_2D, NeptTex );	
-		//glPushMatrix( );
-			//glScalef( 1.f, 1.f, 1.f );
-			glCallList( SphereDL );		// a dl can call another dl that has been previously created
-		//glPopMatrix( );
-	glEndList( );
+	GridDL = glGenLists( 1 );
+	glNewList( GridDL, GL_COMPILE );
+        SetMaterial( 0.6f, 0.6f, 0.6f, 30.f );
+        glNormal3f( 0., 1., 0. );
+        for( int i = 0; i < NZ; i++ )
+        {
+                glBegin( GL_QUAD_STRIP );
+                for( int j = 0; j < NX; j++ )
+                {
+                        glVertex3f( X0 + DX*(float)j, YGRID, Z0 + DZ*(float)(i+0) );
+                        glVertex3f( X0 + DX*(float)j, YGRID, Z0 + DZ*(float)(i+1) );
+                }
+                glEnd( );
+        }
+glEndList( );
 
 	// create the axes:
 
 	AxesList = glGenLists( 1 );
 	glNewList( AxesList, GL_COMPILE );
 		glLineWidth( AXES_WIDTH );
-			Axes( 1.5 );
+			Axes( 0 );
 		glLineWidth( 1. );
 	glEndList( );
+
 }
 
 
@@ -1154,7 +1035,37 @@ Keyboard( unsigned char c, int x, int y )
 
 		case 'p':
 		case 'P':
-			NowProjection = PERSP;
+			NowLight = POINT;
+			break;
+
+		case 's':
+		case 'S':
+			NowLight = SPOT;
+			break;
+
+		case 'r':
+		case 'R':
+			NowColor = RED;
+			break;
+
+		case 'b':
+		case 'B':
+			NowColor = BLUE;
+			break;
+
+		case 'g':
+		case 'G':
+			NowColor = GREEN;
+			break;
+
+		case 'w':
+		case 'W':
+			NowColor = WHIT;
+			break;
+
+		case 'y':
+		case 'Y':
+			NowColor = YELLOW;
 			break;
 
 		case 'q':
@@ -1162,53 +1073,6 @@ Keyboard( unsigned char c, int x, int y )
 		case ESCAPE:
 			DoMainMenu( QUIT );	// will not return here
 			break;				// happy compiler
-
-		case 't':
-		case 'T':
-			TexMode = !TexMode;
-			break;
-		
-		case 'l':
-		case 'L':
-            LightMode = !LightMode;
-			break;
-		
-		case 'v':
-		case 'V':
-			planetNum = 2;
-			break;
-
-		
-		case 'e':
-		case 'E':
-			planetNum = 3;
-			break;
-
-		case 'm':
-		case 'M':
-			planetNum = 4;
-			break;
-		
-		case 'j':
-		case 'J':
-			planetNum = 5;
-			break;
-		
-		case 's':
-		case 'S':
-			planetNum = 6;
-			break;
-
-		case 'u':
-		case 'U':
-			planetNum = 7;	
-			break;
-
-		case 'n':
-		case 'N':
-			planetNum = 8;
-			break;
-
 
 		default:
 			fprintf( stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c );
@@ -1323,14 +1187,14 @@ void
 Reset( )
 {
 	ActiveButton = 0;
-	AxesOn = 1;
+	AxesOn = 0;
 	DebugOn = 0;
 	DepthBufferOn = 1;
 	DepthFightingOn = 0;
 	DepthCueOn = 0;
 	Scale  = 1.0;
 	ShadowsOn = 0;
-	NowColor = YELLOW;
+	NowColor = WHIT;
 	NowProjection = PERSP;
 	Xrot = Yrot = 0.;
 }
