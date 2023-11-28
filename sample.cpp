@@ -1061,7 +1061,7 @@ InitLists( )
 
 		SphereDL = glGenLists( 1 );
 	glNewList( SphereDL, GL_COMPILE );
-		OsuSphere( 1., 150, 250 );
+		OsuSphere( 1., 300, 300 );
 	glEndList( );
 
 	MarsDL = glGenLists( 1 );
